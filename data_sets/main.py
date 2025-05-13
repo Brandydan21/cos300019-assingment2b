@@ -2,10 +2,13 @@ import pandas as pd
 from collections import defaultdict
 import json
 
-# Load the SCATS dataset (skip first row which contains subheaders)
+# Load SCATS dataset and skip first row (subheaders)
 df = pd.read_csv("ScatsDataOctober2006 - Data.csv", header=1)
 
-# Clean and rename necessary columns
+# Load neighbours CSV
+neighbours_df = pd.read_csv("scat_neighbours.csv")
+
+# Rename columns for consistency
 df.rename(columns={
     'SCATS Number': 'scat_number',
     'NB_LATITUDE': 'lat',
@@ -13,11 +16,11 @@ df.rename(columns={
     'Date': 'date'
 }, inplace=True)
 
-# Locate actual volume columns starting from 'V00' to 'V95'
+# Locate volume columns from V00 to V95
 start_index = df.columns.get_loc('V00')
-volume_cols = df.columns[start_index:start_index + 96]  # Only V00–V95
+volume_cols = df.columns[start_index:start_index + 96]
 
-# Prepare structured data
+# Prepare structured data dictionary
 structured_data = {}
 
 for _, row in df.iterrows():
@@ -31,6 +34,7 @@ for _, row in df.iterrows():
             "scat_number": int(scat),
             "long": long,
             "lat": lat,
+            "neighbours": [],  # Placeholder, will be filled later
             "date": defaultdict(list)
         }
 
@@ -42,10 +46,17 @@ for _, row in df.iterrows():
         volume = int(row[col])
         structured_data[scat]["date"][date].append((v_index, time_str, volume))
 
-# Convert defaultdicts to regular dicts
+# Integrate neighbours from the neighbour file
+for _, row in neighbours_df.iterrows():
+    scat_id = str(row['SCATS Number']).zfill(4)
+    neighbours = [str(n).zfill(4) for n in str(row['NEIGHBOURS']).split(';') if n.strip().isdigit()]
+    if scat_id in structured_data:
+        structured_data[scat_id]["neighbours"] = neighbours
+
+# Convert defaultdicts to regular dicts for JSON serialization
 for entry in structured_data.values():
     entry["date"] = dict(entry["date"])
 
-# Write final output
-with open("structured_scats_data.json", "w") as f:
+# Save to JSON file
+with open("structured_scats_data_with_neighbours.json", "w") as f:
     json.dump(structured_data, f, indent=2)

@@ -1,7 +1,13 @@
 import pandas as pd
 
+'''
+Cleanses the ScatsDataOctober2006 - Data.csv to get only relevant data and output into 
+../processed_data/scats_volume_flat.csv
+'''
+
+
 # Load SCATS dataset and skip first row (subheaders)
-df = pd.read_csv("data_sets/ScatsDataOctober2006 - Data.csv", header=1)
+df = pd.read_csv("../data_sets/ScatsDataOctober2006 - Data.csv", header=1)
 
 # Rename columns for consistency
 df.rename(columns={
@@ -40,4 +46,4 @@ flat_df = pd.DataFrame(flat_records)
 flat_df = flat_df.groupby(['scat_number', 'date', 'time'], as_index=False)['volume'].mean()
 
 # Save final averaged CSV output
-flat_df.to_csv("processed_data/scats_volume_flat.csv", index=False)
+flat_df.to_csv("../processed_data/scats_volume_flat.csv", index=False)

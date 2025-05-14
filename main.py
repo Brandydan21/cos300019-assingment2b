@@ -6,8 +6,6 @@ df = pd.read_csv("data_sets/ScatsDataOctober2006 - Data.csv", header=1)
 # Rename columns for consistency
 df.rename(columns={
     'SCATS Number': 'scat_number',
-    'NB_LATITUDE': 'lat',
-    'NB_LONGITUDE': 'long',
     'Date': 'date'
 }, inplace=True)
 
@@ -20,8 +18,6 @@ flat_records = []
 
 for _, row in df.iterrows():
     scat = str(row['scat_number']).zfill(4)
-    lat = float(row['lat'])
-    long = float(row['long'])
     date = row['date']
 
     for i, col in enumerate(volume_cols):
@@ -32,13 +28,16 @@ for _, row in df.iterrows():
 
         flat_records.append({
             "scat_number": scat,
-            "lat": lat,
-            "long": long,
             "date": date,
             "time": time_str,
             "volume": volume
         })
 
-# Save flat CSV output for ML
+# Convert to DataFrame
 flat_df = pd.DataFrame(flat_records)
+
+# Average duplicates (same scat_number, date, time)
+flat_df = flat_df.groupby(['scat_number', 'date', 'time'], as_index=False)['volume'].mean()
+
+# Save final averaged CSV output
 flat_df.to_csv("processed_data/scats_volume_flat.csv", index=False)

@@ -13,7 +13,7 @@ inverse_scat_lookup = {v: k for k, v in scat_lookup.items()}
 
 # ---------------- Input: SCAT + target datetime ----------------
 target_scat = 970
-target_datetime = pd.to_datetime("2006-11-14 23:30")
+target_datetime = pd.to_datetime("2006-11-14 8:30")
 
 # ---------------- Load historical data ----------------
 df = pd.read_csv("../processed_data/scats_volume_flat.csv")

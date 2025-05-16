@@ -1,6 +1,6 @@
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, GRU, Dense, Flatten
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, LSTM, GRU, Dense, Flatten, Embedding, Concatenate, RepeatVector
 from tensorflow.keras.callbacks import EarlyStopping
 from math import sqrt
 import numpy as np
@@ -8,67 +8,81 @@ import os
 import sys
 import joblib
 
-# Add preprocessing path
+# ---------------- Load preprocessed data ----------------
 path = os.path.abspath("../data_processing")
 sys.path.append(path)
-
 import data_preprocessing
 
-# Create directory to save models
-os.makedirs("models", exist_ok=True)
+X_train = data_preprocessing.X_train_seq
+X_test = data_preprocessing.X_test_seq
+scat_train = data_preprocessing.scat_train
+scat_test = data_preprocessing.scat_test
+y_train = data_preprocessing.y_train
+y_test = data_preprocessing.y_test
 
-# Load preprocessed training data
-X_train, X_test, y_train, y_test = (
-    data_preprocessing.X_train,
-    data_preprocessing.X_test,
-    data_preprocessing.y_train,
-    data_preprocessing.y_test
-)
-
-# Load the scaler for inverse transformation
+# ---------------- Load SCAT metadata ----------------
 scalers = joblib.load("../processed_data/scalers_by_scat.joblib")
-scaler = scalers[list(scalers.keys())[0]]  # Use the first available one
+scat_id_lookup = joblib.load("../processed_data/scat_id_lookup.joblib")
+num_scat_ids = len(scat_id_lookup)
 
-# ---------------------- LSTM MODEL ----------------------
-model_lstm = Sequential([
-    LSTM(64, input_shape=(X_train.shape[1], X_train.shape[2])),
-    Dense(1)
-])
-model_lstm.compile(optimizer='adam', loss='mse')
-model_lstm.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=20, batch_size=32)
-pred_lstm_scaled = model_lstm.predict(X_test)
-pred_lstm = scaler.inverse_transform(pred_lstm_scaled)
-model_lstm.save("models/lstm_model.keras")
+# ---------------- Common model components ----------------
+def build_scat_embedding(scat_input, sequence_len):
+    scat_embed = Embedding(input_dim=num_scat_ids, output_dim=8)(scat_input)  # (None, 1, 8)
+    scat_embed = Flatten()(scat_embed)                                        # (None, 8)
+    scat_embed = RepeatVector(sequence_len)(scat_embed)                       # (None, sequence_len, 8)
+    return scat_embed
 
-# ---------------------- GRU MODEL ----------------------
-model_gru = Sequential([
-    GRU(64, input_shape=(X_train.shape[1], X_train.shape[2])),
-    Dense(1)
-])
-model_gru.compile(optimizer='adam', loss='mse')
-model_gru.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=20, batch_size=32)
-pred_gru_scaled = model_gru.predict(X_test)
-pred_gru = scaler.inverse_transform(pred_gru_scaled)
-model_gru.save("models/gru_model.keras")
+def build_model(model_type):
+    sequence_input = Input(shape=(X_train.shape[1], X_train.shape[2]), name="sequence_input")
+    scat_input = Input(shape=(1,), name="scat_input")
+    scat_embed = build_scat_embedding(scat_input, X_train.shape[1])
+    merged = Concatenate(axis=-1)([sequence_input, scat_embed])  # (None, 8, 17)
 
-# ---------------------- DENSE NN MODEL ----------------------
-model_dense = Sequential([
-    Flatten(input_shape=(X_train.shape[1], X_train.shape[2])),
-    Dense(64, activation='relu'),
-    Dense(32, activation='relu'),
-    Dense(1)
-])
-model_dense.compile(optimizer='adam', loss='mse')
-model_dense.fit(X_train, y_train, validation_data=(X_test, y_test), epochs=20, batch_size=32)
-pred_dense_scaled = model_dense.predict(X_test)
-pred_dense = scaler.inverse_transform(pred_dense_scaled)
-model_dense.save("models/dense_model.keras")
+    if model_type == "LSTM":
+        x = LSTM(128, return_sequences=True)(merged)
+        x = LSTM(64)(x)
+    elif model_type == "GRU":
+        x = GRU(128, return_sequences=True)(merged)
+        x = GRU(64)(x)
+    elif model_type == "Dense":
+        x = Flatten()(merged)
+        x = Dense(128, activation='relu')(x)
+        x = Dense(64, activation='relu')(x)
+    else:
+        raise ValueError("Invalid model_type")
 
-# ---------------------- EVALUATION ----------------------
-# Inverse-transform y_test
-if y_test.ndim == 1:
-    y_test = y_test.reshape(-1, 1)
-y_test_inv = scaler.inverse_transform(y_test)
+    output = Dense(1)(x)
+    model = Model(inputs=[sequence_input, scat_input], outputs=output)
+    model.compile(optimizer='adam', loss='mse')
+    return model
+
+# ---------------- Training loop ----------------
+models = {}
+predictions = {}
+model_types = ["LSTM", "GRU", "Dense"]
+early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
+
+for mtype in model_types:
+    print(f"\nTraining {mtype} model...")
+    model = build_model(mtype)
+    model.fit(
+        [X_train, scat_train],
+        y_train,
+        validation_data=([X_test, scat_test], y_test),
+        epochs=30,
+        batch_size=32,
+        callbacks=[early_stop],
+        verbose=1
+    )
+    model.save(f"models/{mtype.lower()}_scat_model.keras")
+    y_pred_scaled = model.predict([X_test, scat_test])
+    predictions[mtype] = y_pred_scaled
+    models[mtype] = model
+
+# ---------------- Evaluation ----------------
+scaler = scalers[list(scalers.keys())[0]]
+y_test = y_test.reshape(-1, 1)
+y_true = scaler.inverse_transform(y_test)
 
 with open("models/model_evaluation.txt", "w") as f:
     def log_metrics(name, y_true, y_pred):
@@ -79,8 +93,8 @@ with open("models/model_evaluation.txt", "w") as f:
         f.write(f"{name} RMSE: {rmse:.6f}\n")
         f.write(f"{name} MAE: {mae:.6f}\n\n")
 
-    log_metrics("LSTM", y_test_inv, pred_lstm)
-    log_metrics("GRU", y_test_inv, pred_gru)
-    log_metrics("Dense NN", y_test_inv, pred_dense)
+    for name, y_pred_scaled in predictions.items():
+        y_pred = scaler.inverse_transform(y_pred_scaled)
+        log_metrics(f"{name} + SCAT + Volume", y_true, y_pred)
 
-print("✅ Models trained and evaluation results saved to models/model_evaluation.txt")
+print("✅ All models trained and saved. Evaluation saved to models/model_evaluation.txt")

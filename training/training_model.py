@@ -80,9 +80,7 @@ for mtype in model_types:
     models[mtype] = model
 
 # ---------------- Evaluation ----------------
-scaler = scalers[list(scalers.keys())[0]]
 y_test = y_test.reshape(-1, 1)
-y_true = scaler.inverse_transform(y_test)
 
 with open("models/model_evaluation.txt", "w") as f:
     def log_metrics(name, y_true, y_pred):
@@ -94,7 +92,9 @@ with open("models/model_evaluation.txt", "w") as f:
         f.write(f"{name} MAE: {mae:.6f}\n\n")
 
     for name, y_pred_scaled in predictions.items():
+        scaler = scalers[list(scalers.keys())[0]]  # For now, use the same scaler for all
+        y_true = scaler.inverse_transform(y_test)
         y_pred = scaler.inverse_transform(y_pred_scaled)
         log_metrics(f"{name} + SCAT + Volume", y_true, y_pred)
-
+        
 print("✅ All models trained and saved. Evaluation saved to models/model_evaluation.txt")

@@ -97,4 +97,4 @@ with open("models/model_evaluation.txt", "w") as f:
         y_pred = scaler.inverse_transform(y_pred_scaled)
         log_metrics(f"{name} + SCAT + Volume", y_true, y_pred)
         
-print("✅ All models trained and saved. Evaluation saved to models/model_evaluation.txt")
+print("All models trained and saved. Evaluation saved to models/model_evaluation.txt")

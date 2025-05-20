@@ -23,4 +23,4 @@ def update_graph_weights(graph, model, prediction_time, estimator_func):
             travel_time = estimator_func(u, v, prediction_time, model)
             graph[u][v]["weight"] = travel_time
         except Exception as e:
-            print(f"⚠️ Failed to update edge ({u} → {v}): {e}")
+            print(f" Failed to update edge ({u} → {v}): {e}")

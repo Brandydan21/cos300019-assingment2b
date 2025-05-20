@@ -8,7 +8,7 @@ parser = argparse.ArgumentParser(description="Top-k Route Finder for SCATS Graph
 parser.add_argument("--source", type=int, required=True, help="Start SCAT site number")
 parser.add_argument("--target", type=int, required=True, help="Destination SCAT site number")
 parser.add_argument("--datetime", type=str, required=True, help="Datetime in format YYYY-MM-DD HH:MM")
-parser.add_argument("--model_path", type=str, default="training/models/lstm_scat_model.keras", help="Path to the trained ML model")
+parser.add_argument("--model_path", type=str, default="training/models/gru_scat_model.keras", help="Path to the trained ML model")
 parser.add_argument("--k", type=int, default=5, help="Number of top paths to return")
 
 args = parser.parse_args()

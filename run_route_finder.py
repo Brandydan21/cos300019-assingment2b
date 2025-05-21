@@ -21,6 +21,14 @@ with open("processed_data/scat_graph.gpickle", "rb") as f:
 # Load ML model
 model = load_model(args.model_path)
 
+if args.source not in G.nodes:
+    print(f"❌ Source SCAT site {args.source} not found in the graph.")
+    exit(1)
+
+if args.target not in G.nodes:
+    print(f"❌ Target SCAT site {args.target} not found in the graph.")
+    exit(1)
+
 # Update graph edge weights using the ML estimator
 update_graph_weights(G, model, args.datetime, estimate_travel_time)
 

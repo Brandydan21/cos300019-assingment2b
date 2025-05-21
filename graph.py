@@ -21,7 +21,7 @@ prediction_time = "2006-11-21 09:30"
 # === Add nodes and edges ===
 for _, row in df.iterrows():
     from_scat = int(row["SCATS Number"])
-    G.add_node(from_scat)
+    G.add_node(from_scat, lat=row["NB_LATITUDE"], lon=row["NB_LONGITUDE"])
 
     neighbours = [int(n) for n in row["NEIGHBOURS"] if n.strip().isdigit()]
     for to_scat in neighbours:

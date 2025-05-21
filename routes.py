@@ -6,17 +6,6 @@ def compute_total_travel_time(graph, path):
     return sum(graph[u][v]['weight'] for u, v in zip(path[:-1], path[1:]))
 
 def find_top_k_paths(graph, source, target, k=5, search_type="astar"):
-    if search_type == "topk":
-        from networkx.algorithms.simple_paths import shortest_simple_paths
-        paths_gen = shortest_simple_paths(graph, source, target, weight='weight')
-        top_k = []
-        for i, path in enumerate(paths_gen):
-            total_time = compute_total_travel_time(graph, path)
-            top_k.append((path, total_time))
-            if i + 1 == k:
-                break
-        return top_k
-
     search_funcs = {
         "dfs": depth_first_search,
         "bfs": breadth_first_search,
@@ -29,27 +18,19 @@ def find_top_k_paths(graph, source, target, k=5, search_type="astar"):
     if not search_func:
         raise ValueError(f"Unsupported search type: {search_type}")
 
-    # Only return 1 path for astar, greedy, iddfs
-    single_path_algos = {"astar", "greedy", "iddfs"}
     paths = search_func(graph, source, target, k)
-
-    if search_type in single_path_algos and paths:
-        return [(paths[0], compute_total_travel_time(graph, paths[0]))]
-    else:
-        return [(path, compute_total_travel_time(graph, path)) for path in paths]
-
-# --------------------------
-# Search algorithm variants:
-# --------------------------
+    return [(path, compute_total_travel_time(graph, path)) for path in paths]
 
 def depth_first_search(graph, source, target, k):
     stack = [(source, [source])]
     paths = []
+    seen = set()
 
     while stack and len(paths) < k:
         node, path = stack.pop()
-        if node == target:
+        if node == target and tuple(path) not in seen:
             paths.append(path)
+            seen.add(tuple(path))
             continue
         for neighbor in graph.neighbors(node):
             if neighbor not in path:
@@ -59,11 +40,13 @@ def depth_first_search(graph, source, target, k):
 def breadth_first_search(graph, source, target, k):
     queue = deque([(source, [source])])
     paths = []
+    seen = set()
 
     while queue and len(paths) < k:
         node, path = queue.popleft()
-        if node == target:
+        if node == target and tuple(path) not in seen:
             paths.append(path)
+            seen.add(tuple(path))
             continue
         for neighbor in graph.neighbors(node):
             if neighbor not in path:
@@ -71,57 +54,63 @@ def breadth_first_search(graph, source, target, k):
     return paths
 
 def greedy_best_first_search(graph, source, target, k):
-    def heuristic(n): return 0
+    def heuristic(n): return abs(n - target)
     queue = [(heuristic(source), source, [source])]
-    visited = set()
+    results = []
+    seen_paths = set()
 
-    while queue:
+    while queue and len(results) < k:
         _, node, path = heappop(queue)
-        if node == target:
-            return [path]
-        if node in visited:
+        if node == target and tuple(path) not in seen_paths:
+            results.append(path)
+            seen_paths.add(tuple(path))
             continue
-        visited.add(node)
         for neighbor in graph.neighbors(node):
             if neighbor not in path:
-                heappush(queue, (heuristic(neighbor), neighbor, path + [neighbor]))
-    return []
+                new_path = path + [neighbor]
+                heappush(queue, (heuristic(neighbor), neighbor, new_path))
+    return results
 
 def a_star_search(graph, source, target, k):
-    def heuristic(n): return 0
-    queue = [(0 + heuristic(source), 0, source, [source])]
-    visited = {}
+    def heuristic(n): return abs(n - target)
+    queue = [(heuristic(source), 0, source, [source])]
+    results = []
+    seen_paths = set()
 
-    while queue:
+    while queue and len(results) < k:
         f, cost, node, path = heappop(queue)
-        if node == target:
-            return [path]
-        if node in visited and visited[node] <= cost:
+        if node == target and tuple(path) not in seen_paths:
+            results.append(path)
+            seen_paths.add(tuple(path))
             continue
-        visited[node] = cost
         for neighbor in graph.neighbors(node):
             if neighbor not in path:
                 new_cost = cost + graph[node][neighbor]['weight']
-                heappush(queue, (new_cost + heuristic(neighbor), new_cost, neighbor, path + [neighbor]))
-    return []
+                new_path = path + [neighbor]
+                heappush(queue, (new_cost + heuristic(neighbor), new_cost, neighbor, new_path))
+    return results
 
 def iterative_deepening_dfs(graph, source, target, k, max_depth=50):
-    def dls(node, target, depth, path):
+    def dls(node, target, depth, path, found, seen):
+        if len(found) >= k:
+            return
         if depth == 0 and node == target:
-            return [path]
+            if tuple(path) not in seen:
+                found.append(path)
+                seen.add(tuple(path))
+            return
         if depth > 0:
             for neighbor in graph.neighbors(node):
                 if neighbor not in path:
-                    result = dls(neighbor, target, depth - 1, path + [neighbor])
-                    if result:
-                        return result
-        return []
+                    dls(neighbor, target, depth - 1, path + [neighbor], found, seen)
 
+    results = []
+    seen = set()
     for depth in range(max_depth):
-        result = dls(source, target, depth, [source])
-        if result:
-            return result
-    return []
+        dls(source, target, depth, [source], results, seen)
+        if len(results) >= k:
+            break
+    return results
 
 def update_graph_weights(graph, model, prediction_time, estimator_func):
     for u, v in graph.edges:

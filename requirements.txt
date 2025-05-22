@@ -12,13 +12,13 @@ grpcio==1.71.0
 h5py==3.13.0
 idna==3.10
 joblib==1.5.0
-keras==3.9.2
+keras
 kiwisolver==1.4.8
 libclang==18.1.1
 Markdown==3.8
 markdown-it-py==3.0.0
 MarkupSafe==3.0.2
-matplotlib==3.10.3
+matplotlib
 mdurl==0.1.2
 ml-dtypes==0.3.2
 namex==0.0.9
@@ -39,7 +39,7 @@ scipy==1.15.3
 six==1.17.0
 tensorboard==2.16.2
 tensorboard-data-server==0.7.2
-tensorflow==2.16.2
+tensorflow
 tensorflow-io-gcs-filesystem==0.37.1
 termcolor==3.1.0
 threadpoolctl==3.6.0
@@ -53,4 +53,4 @@ streamlit
 protobuf==3.20.3
 altair
 folium
-functools
+tkintermapview

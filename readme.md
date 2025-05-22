@@ -7,15 +7,21 @@
 
 ---
 
-# Project Setup Instructions (macOS, Python 3.10.11)
+# Project Setup Instructions (Python 3.10.11)
 
 ## 1. Install Python 3.10.11 with Tkinter Support
 
-Download and install the official Python 3.10.11 release from python.org:
+Download and install the official Python 3.10.11 release from python.org for macOS:
 
 https://www.python.org/ftp/python/3.10.11/python-3.10.11-macos11.pkg
 
 Run the `.pkg` file and follow the installer instructions.
+
+Download and install the official Python 3.10.11 release from python.org for Windows:
+
+https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe
+
+Run the `.exe` file and follow the installer instructions.
 
 We need to install Python from the official Python website as it comes with TKinter which is required for this project
 
@@ -121,11 +127,6 @@ $ python data_preprocessing.py
 - `../processed_data/onehot_encoder_dow.joblib` — day-of-week encoder
 - `../processed_data/scat_id_lookup.joblib` — SCAT site to integer ID map
 
-### In-Memory Outputs (used for training):
-- `X_train_seq`, `X_test_seq` — input sequences (shape: samples × 8 × 9)
-- `scat_train`, `scat_test` — encoded SCAT IDs
-- `y_train`, `y_test` — target volume values
-
 ### Prerequisite:
 Ensure `data_cleansing.py` has generated `scats_volume_flat.csv` in the `../processed_data/` directory.
 
@@ -186,22 +187,10 @@ The training script builds and trains three model types using TensorFlow:
 - GRU (Gated Recurrent Unit)
 - Dense (Fully Connected Neural Network)
 
-Each model uses:
-- 8-step historical traffic volume sequences (`X_train_seq`, `X_test_seq`)
-- Integer-encoded SCAT site identifiers (`scat_train`, `scat_test`)
-- Target output: scaled future traffic volume (`y_train`, `y_test`)
-
-The model architecture includes:
-- A SCAT site embedding layer
-- A sequence input layer
-- Concatenated feature input combining temporal and site-specific features
-
 ### To run:
 ```
-$ python train_model.py
+$ python training_model.py
 ```
-
-> Replace `train_model.py` with the actual script name if different.
 
 ### Output:
 - `models/lstm_scat_model.keras` — trained LSTM model

@@ -91,7 +91,7 @@ def estimate_travel_time(from_scat, to_scat, datetime_str, model):
     to_scat = int(to_scat)
     dt = pd.to_datetime(datetime_str)
 
-    print(f"\n🔍 Estimating travel time from SCAT {from_scat} to SCAT {to_scat} at {datetime_str}")
+    print(f"\nEstimating travel time from SCAT {from_scat} to SCAT {to_scat} at {datetime_str}")
 
     # Step 1: Get coordinates
     from_row = df[df["scat_number"] == from_scat].iloc[0]

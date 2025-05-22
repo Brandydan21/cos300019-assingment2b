@@ -22,11 +22,11 @@ with open("processed_data/scat_graph.gpickle", "rb") as f:
 model = load_model(args.model_path)
 
 if args.source not in G.nodes:
-    print(f"❌ Source SCAT site {args.source} not found in the graph.")
+    print(f"Source SCAT site {args.source} not found in the graph.")
     exit(1)
 
 if args.target not in G.nodes:
-    print(f"❌ Target SCAT site {args.target} not found in the graph.")
+    print(f"Target SCAT site {args.target} not found in the graph.")
     exit(1)
 
 # Update graph edge weights using the ML estimator
@@ -37,7 +37,7 @@ paths = find_top_k_paths(G, args.source, args.target, k=5, search_type=args.sear
 
 # Output
 if not paths:
-    print("⚠️ No paths found.")
+    print("No paths found.")
 else:
     print(f"\nTop 5 path(s) using '{args.search}' search:\n")
     for i, (path, travel_time) in enumerate(paths, 1):
